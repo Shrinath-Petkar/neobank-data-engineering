@@ -1,0 +1,41 @@
+# =============================================================
+# NeoBank_Source_to_Silver_Outer
+# Reads table list from metadata, fans out to Inner job via For Each
+# Receives source_system parameter (blob or supabase) from Master job
+# =============================================================
+
+resources:
+  jobs:
+    neobank_source_to_silver_outer:
+      name: NeoBank_Source_to_Silver_Outer
+
+      max_concurrent_runs: 1
+
+      parameters:
+        - name: run_id
+          default: "12345"
+        - name: source_system
+          default: blob
+
+      tasks:
+        # Step 1: Read list of active tables for this source system
+        - task_key: Get_List_of_Tables
+          notebook_task:
+            notebook_path: ../02_Source_to_Silver/01_Read_Tables_List.py
+
+        # Step 2: For Each table, call the Inner job (concurrency 4)
+        - task_key: Ingest_Data_From_Source_to_Silver
+          depends_on:
+            - task_key: Get_List_of_Tables
+          for_each_task:
+            inputs: "{{tasks.Get_List_of_Tables.values.tables_metadata}}"
+            concurrency: 4
+            task:
+              task_key: Ingest_Data_From_Source_to_Silver_iteration
+              run_job_task:
+                job_id: ${resources.jobs.neobank_source_to_silver_inner.id}
+                job_parameters:
+                  table_metadata: "{{input}}"
+
+      queue:
+        enabled: true

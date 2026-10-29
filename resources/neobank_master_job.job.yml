@@ -1,0 +1,61 @@
+# =============================================================
+# NeoBank_Master_Job
+# Top-level orchestrator for the entire pipeline
+#
+# BLOB ingestion   --+
+#                   +--> Silver to Gold --> Send Email
+# SUPABASE ingestion+
+# =============================================================
+
+resources:
+  jobs:
+    neobank_master_job:
+      name: NeoBank_Master_Job
+
+      max_concurrent_runs: 1
+
+      parameters:
+        - name: run_id
+          default: "123456"
+
+      tasks:
+        # Task 1: Ingest BLOB source (credit_bureau_reports, payment_gateway_logs)
+        - task_key: Source_to_Silver_BLOB
+          run_job_task:
+            job_id: ${resources.jobs.neobank_source_to_silver_outer.id}
+            job_parameters:
+              run_id: "{{job.run_id}}"
+              source_system: blob
+
+        # Task 2: Ingest SUPABASE source (customers, accounts, transactions, branches)
+        - task_key: Source_to_Silver_SUPABASE
+          run_job_task:
+            job_id: ${resources.jobs.neobank_source_to_silver_outer.id}
+            job_parameters:
+              run_id: "{{job.run_id}}"
+              source_system: supabase
+
+        # Task 3: Run Silver to Gold transformations (after both ingestion tasks)
+        - task_key: Silver_to_Gold
+          depends_on:
+            - task_key: Source_to_Silver_BLOB
+            - task_key: Source_to_Silver_SUPABASE
+          run_if: ALL_DONE
+          run_job_task:
+            job_id: ${resources.jobs.neobank_silver_to_gold.id}
+            job_parameters:
+              run_id: "{{job.run_id}}"
+              source_system: silver
+
+        # Task 4: Send email notification with pipeline audit summary
+        - task_key: Send_Email
+          depends_on:
+            - task_key: Silver_to_Gold
+          run_if: ALL_DONE
+          notebook_task:
+            notebook_path: ../04_Email_Notification/01_Send_Email.py
+            base_parameters:
+              run_id: "{{job.run_id}}"
+
+      queue:
+        enabled: true

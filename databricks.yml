@@ -1,0 +1,49 @@
+# =============================================================
+# Declarative Automation Bundle (DAB) for NeoBank Pipeline
+# =============================================================
+# Defines all 4 Databricks Jobs that orchestrate the end-to-end
+# pipeline: Source -> Bronze -> Silver -> Gold -> Email
+# =============================================================
+
+bundle:
+  name: neobank_data_engineering
+
+include:
+  - resources/*.yml
+
+# -----------------------------------------------------------
+# Variables (parameterized for multi-environment support)
+# -----------------------------------------------------------
+variables:
+  catalog:
+    description: Unity Catalog name for banking data
+    default: banking
+
+  warehouse_id:
+    description: SQL Warehouse ID for dashboard refresh tasks
+    default: f0bff84206d339e1
+
+  run_id:
+    description: Pipeline run ID for audit tracking
+    default: "123456"
+
+# -----------------------------------------------------------
+# Targets
+# -----------------------------------------------------------
+targets:
+  # Development target — prefixed with [dev] and user-scoped paths
+  dev:
+    default: true
+    mode: development
+    variables:
+      catalog: banking
+      warehouse_id: f0bff84206d339e1
+      run_id: "123456"
+
+  # Production target — shared workspace paths, no prefix
+  prod:
+    mode: production
+    variables:
+      catalog: banking
+      warehouse_id: f0bff84206d339e1
+      run_id: "123456"

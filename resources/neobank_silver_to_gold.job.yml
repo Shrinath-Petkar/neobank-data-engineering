@@ -1,0 +1,42 @@
+# =============================================================
+# NeoBank_Silver_to_Gold
+# Reads gold table list, fans out to Gold Driver via For Each
+# Each iteration runs a gold transformation notebook
+# =============================================================
+
+resources:
+  jobs:
+    neobank_silver_to_gold:
+      name: NeoBank_Silver_to_Gold
+
+      max_concurrent_runs: 1
+
+      parameters:
+        - name: run_id
+          default: "123456"
+        - name: source_system
+          default: silver
+
+      tasks:
+        # Step 1: Read list of gold tables (reuses 01_Read_Tables_List
+        # with source_system=silver to get gold table definitions)
+        - task_key: Get_List_of_Tables
+          notebook_task:
+            notebook_path: ../02_Source_to_Silver/01_Read_Tables_List.py
+
+        # Step 2: For Each gold table, run the Gold Driver notebook
+        - task_key: Ingest_Data_From_Source_to_Silver
+          depends_on:
+            - task_key: Get_List_of_Tables
+          for_each_task:
+            inputs: "{{tasks.Get_List_of_Tables.values.tables_metadata}}"
+            concurrency: 4
+            task:
+              task_key: Ingest_Data_From_Source_to_Silver_iteration
+              notebook_task:
+                notebook_path: ../03_Silver_to_Gold/01_Silver_to_Gold_Driver.py
+                base_parameters:
+                  table_metadata: "{{input}}"
+
+      queue:
+        enabled: true

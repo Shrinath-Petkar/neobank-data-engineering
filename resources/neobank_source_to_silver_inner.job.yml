@@ -1,0 +1,45 @@
+# =============================================================
+# NeoBank_Source_to_Silver_Inner
+# Per-table pipeline: Read Parameters -> Source to Bronze -> Bronze to Silver
+# Called by the Outer job via For Each task (concurrency 4)
+# =============================================================
+
+resources:
+  jobs:
+    neobank_source_to_silver_inner:
+      name: NeoBank_Source_to_Silver_Inner
+
+      max_concurrent_runs: 4
+
+      parameters:
+        - name: run_id
+          default: ""
+        - name: table_metadata
+          default: ""
+
+      tasks:
+        # Step 1: Read load parameters for this table
+        - task_key: Get_List_of_Parameters
+          notebook_task:
+            notebook_path: ../02_Source_to_Silver/02_Read_Table_Parameters.py
+
+        # Step 2: Ingest source data into Bronze layer
+        - task_key: Source_to_Bronze_Ingestion
+          depends_on:
+            - task_key: Get_List_of_Parameters
+          notebook_task:
+            notebook_path: ../02_Source_to_Silver/03_Source_to_Bronze.py
+            base_parameters:
+              table_parameters: "{{tasks.Get_List_of_Parameters.values.table_parameters}}"
+
+        # Step 3: Transform Bronze to Silver (MERGE / APPEND / FULL)
+        - task_key: Bronze_to_Silver
+          depends_on:
+            - task_key: Source_to_Bronze_Ingestion
+          notebook_task:
+            notebook_path: ../02_Source_to_Silver/04_Bronze_to_Silver.py
+            base_parameters:
+              table_parameters: "{{tasks.Get_List_of_Parameters.values.table_parameters}}"
+
+      queue:
+        enabled: true
