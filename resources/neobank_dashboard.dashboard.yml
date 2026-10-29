@@ -1,0 +1,15 @@
+# =============================================================
+# NeoBank_Dashboard
+# Lakeview dashboard built on banking.gold tables
+# Queries: customer_360, branch_performance, transaction_channel_summary
+# 4 pages: Executive Dashboard, Customer Insights, Branch Performance, Channel Performance
+# =============================================================
+
+resources:
+  dashboards:
+    neobank_dashboard:
+      display_name: NeoBank_Dashboard
+      file_path: ../dashboards/neobank_dashboard.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: gold

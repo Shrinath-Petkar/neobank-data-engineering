@@ -30,7 +30,10 @@ neobank-data-engineering/
 │   ├── neobank_master_job.job.yml              # Master orchestrator job
 │   ├── neobank_source_to_silver_outer.job.yml  # Outer ingestion job
 │   ├── neobank_source_to_silver_inner.job.yml  # Inner per-table job
-│   └── neobank_silver_to_gold.job.yml          # Gold transformation job
+│   ├── neobank_silver_to_gold.job.yml          # Gold transformation job
+│   └── neobank_dashboard.dashboard.yml         # NeoBank Lakeview dashboard
+├── dashboards/
+│   └── neobank_dashboard.lvdash.json           # Dashboard serialized JSON
 ├── .github/workflows/
 │   └── deploy.yml                              # GitHub Actions CI/CD workflow
 └── CI-CD-README.md                             # This file
@@ -98,14 +101,15 @@ This triggers the `deploy-prod` job in GitHub Actions.
 
 ## 📦 Bundle Resources
 
-The bundle defines 4 Databricks Jobs:
+The bundle defines 4 Databricks Jobs and 1 Dashboard:
 
-| Resource Key | Job Name | Description |
+| Resource Key | Job/Dashboard Name | Description |
 |-------------|----------|-------------|
 | `neobank_master_job` | NeoBank_Master_Job | Top-level orchestrator |
 | `neobank_source_to_silver_outer` | NeoBank_Source_to_Silver_Outer | Reads table list, fans out via For Each |
 | `neobank_source_to_silver_inner` | NeoBank_Source_to_Silver_Inner | Per-table: parameters → bronze → silver |
 | `neobank_silver_to_gold` | NeoBank_Silver_to_Gold | Reads gold table list, fans out gold driver |
+| `neobank_dashboard` | NeoBank_Dashboard | Lakeview dashboard on banking.gold (4 pages, 12 datasets) |
 
 ### Cross-Job References
 
@@ -133,7 +137,7 @@ Override variables per environment in the `targets` section of `databricks.yml`.
 
 ## ⚠️ Notes
 
-- The dashboard task (NeoBank_Dashboard) from the original master job is not included in the bundle yet. To add it, export the dashboard JSON and add it as a `dashboards` resource.
 - The `00_Setup_Secret_Scope` notebook must be run manually before the first pipeline run — it creates the Databricks secret scope.
 - In `dev` mode, job names are prefixed with `[dev <username>]` and deployed to user-specific workspace paths.
 - In `prod` mode, jobs are deployed to shared workspace paths with no prefix.
+- The NeoBank dashboard is included as a `dashboards` resource (`neobank_dashboard.dashboard.yml`) and refreshed automatically by the Master job's `Refresh_Dashboard` task after the Silver-to-Gold step completes.

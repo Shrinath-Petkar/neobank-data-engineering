@@ -3,7 +3,7 @@
 # Top-level orchestrator for the entire pipeline
 #
 # BLOB ingestion   --+
-#                   +--> Silver to Gold --> Send Email
+#                   +--> Silver to Gold --> Refresh Dashboard --> Send Email
 # SUPABASE ingestion+
 # =============================================================
 
@@ -47,10 +47,19 @@ resources:
               run_id: "{{job.run_id}}"
               source_system: silver
 
-        # Task 4: Send email notification with pipeline audit summary
-        - task_key: Send_Email
+        # Task 4: Refresh the NeoBank Lakeview dashboard with updated gold data
+        - task_key: Refresh_Dashboard
           depends_on:
             - task_key: Silver_to_Gold
+          run_if: ALL_DONE
+          dashboard_task:
+            dashboard_id: ${resources.dashboards.neobank_dashboard.id}
+            warehouse_id: ${var.warehouse_id}
+
+        # Task 5: Send email notification with pipeline audit summary
+        - task_key: Send_Email
+          depends_on:
+            - task_key: Refresh_Dashboard
           run_if: ALL_DONE
           notebook_task:
             notebook_path: ../04_Email_Notification/01_Send_Email.py
