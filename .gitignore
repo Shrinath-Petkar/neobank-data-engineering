@@ -23,3 +23,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Jupyter notebook files (we use Databricks source format)
+*.ipynb
