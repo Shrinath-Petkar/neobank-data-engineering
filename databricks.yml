@@ -43,6 +43,8 @@ targets:
   # Production target — shared workspace paths, no prefix
   prod:
     mode: production
+    workspace:
+      root_path: /Workspace/Users/shrinathpetkar0@gmail.com/.bundle/${bundle.name}/${bundle.target}
     variables:
       catalog: banking
       warehouse_id: f0bff84206d339e1
